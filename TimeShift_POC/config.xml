@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<TemplateList xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="config.xsd">
+	<Template name="BillingDiscount" active="false" epcqueryname="getBillingDiscountWithTimeShiftStatusReady">
+		<IdField name="DiscountId">
+			<Values>
+				<Value/>
+			</Values>
+		</IdField>
+		<TimeShiftTemplate name="BillingRate" xpath="BillingDiscountRateList.BillingRate" continousLogic="true">
+			<UniqueFieldList>
+				<Field name="ApplicableForRatePlan"/>
+				<Field name="BillingFrequency"/>
+			</UniqueFieldList>
+		</TimeShiftTemplate>
+	</Template>
+	<Template name="BillingElement" active="true" epcqueryname="getBillingElementWithTimeShiftStatus">
+		<IdField name="ElementId">
+			<Values>
+				<Value/>
+			</Values>
+		</IdField>
+		<TimeShiftTemplate name="BillingRecurringCharge" xpath="BillingRecurringCharge" continousLogic="true">
+			<UniqueFieldList>
+				<Field name="ApplicableRateClassRef"/>
+				<Field name="BillingFrequency"/>
+			</UniqueFieldList>
+		</TimeShiftTemplate>
+	</Template>
+</TemplateList>
