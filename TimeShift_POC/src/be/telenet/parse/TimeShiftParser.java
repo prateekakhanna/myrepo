@@ -4,15 +4,18 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.HashMap;
-import java.util.List;
 
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 
+import weblogic.wtc.jatmi.tsession;
+
 import be.telenet.config.ProcessElement;
 import be.telenet.config.TimeShiftConstants;
+import be.telenet.display.ExecutionDetails;
+import be.telenet.display.TimeShiftExecutionData;
 import be.telenet.utils.EPCDate;
 
 
@@ -32,12 +35,18 @@ public class TimeShiftParser extends DomParser{
 	private static final String VALIDITY_PERIOD_TEMPLATE_ID = "f54c4363-e87b-4241-8b86-f3db47bfe2f0";
 	private static final String TIMESHIFT_FIELDNAME = "TimeShift";
 	
+	private boolean isSuccessfullyProcess=true;
 	private Document doc;
 	private ProcessElement pElement;
 	private Calendar timeShiftDate;
 	private Calendar releaseDate;
 	private ApplicationFlowEnum flow;
+	private ArrayList<TimeShiftExecutionData> listExecutionData = new ArrayList<TimeShiftExecutionData>();
 		
+	public ArrayList<TimeShiftExecutionData> getListExecutionData() {
+		return listExecutionData;
+	}
+
 	public TimeShiftParser(String xmlString, ProcessElement pElement, Calendar tsd, Calendar rd, ApplicationFlowEnum flow) {
 		super();
 		doc = parse(xmlString);
@@ -66,16 +75,18 @@ public class TimeShiftParser extends DomParser{
 	
 	public boolean process()
 	{
+		
 		if (doc == null || pElement == null)
 			return false;
 		
 		Element rootElement = doc.getDocumentElement();
-		NodeList nl = rootElement.getElementsByTagName(pElement.getIdFieldName());		
+		NodeList nl = rootElement.getElementsByTagName(pElement.getIdFieldName());
 		for(int idx=0; idx < nl.getLength(); idx++)
 		{
 			//Assuming, this ID would be at level 1, so does not run DF execution.
 			Element elementId = (Element) nl.item(idx);
 			String strElementId = getElementAttribute(elementId, "value");
+			TimeShiftExecutionData tsExecData = new TimeShiftExecutionData(Calendar.getInstance(), this.flow, pElement.getEpcTemplateName(), strElementId, pElement.getTimeShiftTemplate().getXPath(), pElement.getDisplayHeader());
 			if (isIdInList(strElementId)) {
 				Node versionNode = elementId.getParentNode();
 				if (versionNode != null && versionNode.getNodeType() == Node.ELEMENT_NODE) 	{
@@ -87,23 +98,26 @@ public class TimeShiftParser extends DomParser{
 					System.out.println("\nTime Shift called for " + pElement.getEpcTemplateName() + " id: " + strElementId +".");
 					if (level == 0) {
 						timeShiftTemplateNodeList = parentElement.getElementsByTagName(xPath);
-						processTimeShift(timeShiftTemplateNodeList);
+						processTimeShift(timeShiftTemplateNodeList, tsExecData);
 					}
 					else {
-						getNodeListForTagName_Recur(parentElement.getChildNodes(), xPath, level);
+						getNodeListForTagName_Recur(parentElement.getChildNodes(), xPath, level, tsExecData);
 					}															
 				}
 			}//if (isIdInList(elementId))
+			// add exec data in the TimeShiftExecutionDetails list.
+			listExecutionData.add(tsExecData);
 		}// end of for loop.
 				
 		serialXMLFile("test.xml" , doc);
-		return true;
+		return isSuccessfullyProcess;
 	}// end of process method
 	
-	private void processTimeShift(NodeList timeShiftTemplateNodeList)	{
+	private void processTimeShift(NodeList timeShiftTemplateNodeList, TimeShiftExecutionData tsExecData)	{
 		
 		if (timeShiftTemplateNodeList == null || timeShiftTemplateNodeList.getLength() == 0) {
 			System.out.println("Configuration issue " + pElement.getTimeShiftTemplate().getXPath());
+			isSuccessfullyProcess=false;
 			return;
 		}
 		
@@ -115,12 +129,16 @@ public class TimeShiftParser extends DomParser{
 		//Find and Duplicate the Element.
 		if (! elementTimeShiftList.isEmpty()) {
 			if (flow == ApplicationFlowEnum.DO_TIMESHIFT && !mapAllContainedElements.isEmpty()){
-				timeShiftWithoutDuplication(mapAllContainedElements, elementTimeShiftList);
+				timeShiftWithoutDuplication(mapAllContainedElements, elementTimeShiftList, tsExecData);
 			}
 			else if (flow == ApplicationFlowEnum.DO_RECORD_DUPLICATION){	
-				parentTimeShiftTemplate = timeShiftUsingDuplication(mapAllContainedElements, parentTimeShiftTemplate, elementTimeShiftList);			
+				parentTimeShiftTemplate = timeShiftUsingDuplication(mapAllContainedElements, parentTimeShiftTemplate, elementTimeShiftList, tsExecData);			
 			}
+		} else {
+			System.out.println("elementTimeShiftList cannot be empty after initialization. Data is not correctly configured in EPC.");
+			isSuccessfullyProcess=false;
 		}
+		
 	}
 	
 	private ArrayList<Element> initForTimeShift(NodeList timeShiftTemplateNodeList, HashMap<String, Element> mapAllRatePlan) {
@@ -143,11 +161,11 @@ public class TimeShiftParser extends DomParser{
 		return elementTimeShiftList;
 	}
 	
-	private void getNodeListForTagName_Recur(NodeList nodeList, String xpath, int level) {		
+	private void getNodeListForTagName_Recur(NodeList nodeList, String xpath, int level, TimeShiftExecutionData execData) {		
 		
 		if (level == 0) {
 			if (nodeList != null) {
-				processTimeShift(nodeList);
+				processTimeShift(nodeList, execData);
 			}
 			return;
 		}
@@ -158,51 +176,22 @@ public class TimeShiftParser extends DomParser{
 			if (n.getNodeType() == Node.ELEMENT_NODE && n.getNodeName().equals(xmlTag)) {											
 				Element e = (Element)n;
 				xmlTag = xpath.substring(xmlTag.length()+1);
-				getNodeListForTagName_Recur(e.getElementsByTagName(xmlTag), xmlTag, --level);
+				getNodeListForTagName_Recur(e.getElementsByTagName(xmlTag), xmlTag, --level, execData);
 			}
 		}
 	}
-	
-	/*
-	private ArrayList<String> getInputUniqueStringList(List<String> fieldNames)
-	{
-		ArrayList<ArrayList<String>> data = new ArrayList<ArrayList<String>>();
-		ArrayList<String> listUnique = new ArrayList<String>();
-		
-		int lastSize=-1;
-		for (String fieldName : fieldNames) {
-			ArrayList<String> tmp = pElement.getTimeShiftTemplate().getUniqueFields().getValueListByName(fieldName);
-			if (lastSize == -1 || tmp.size() == lastSize) {
-				data.add(tmp);
-				lastSize = tmp.size();
-			}
-			else {
-				System.out.println("Problem to create input data");
-				return null;
-			}
-		}
-				
-		if (! data.isEmpty()) {
-			for (int i=0; i<data.get(0).size(); i++){
-				String line="";
-				for (ArrayList<String> al : data)
-				{
-					line += ((al.get(i) != null && al.get(i).length() > 0) ? al.get(i) : "null") + "~"; 
-				}
-				listUnique.add(line);
-			}
-		}
-		return listUnique;
-	}*/
-	
-	private void timeShiftWithoutDuplication(HashMap<String, Element> map, ArrayList<Element> eList)
+			
+	private void timeShiftWithoutDuplication(HashMap<String, Element> map, ArrayList<Element> eList, TimeShiftExecutionData tsExecData)
 	{
 		if (eList != null) {
 			for (Element e : eList) {
 			//Element e = eList.get(0);
 			
-				if (! READY.equals(getElementAttributeByTag(e, TIMESHIFT_FIELDNAME))) 
-						return;
+				if (! READY.equals(getElementAttributeByTag(e, TIMESHIFT_FIELDNAME))){
+					System.out.println("Method timeShiftWithoutDuplication called for " + getTimeShiftElementUniqueString(e, true) + " where TimeShiftStatus = " + getElementAttributeByTag(e, TIMESHIFT_FIELDNAME));
+					isSuccessfullyProcess=false;
+					return;
+				}						
 				
 				//Get unique key using release date.
 				String tsRecordString = getTimeShiftElementUniqueString(e, true);
@@ -214,9 +203,9 @@ public class TimeShiftParser extends DomParser{
 				}
 													
 					//set start date = timeShiftDate.			
-					setValidityStartDate(e, timeShiftDate);
+					tsExecData.addExectuionDetail(setValidityStartDate(e, timeShiftDate));
 					//set end date = timeShiftDate - 1
-					setValidityEndDate(oldEle, pElement.getTimeShiftTemplate().isContinousShiftLogic() ? timeShiftDate : getPerviousCalendarDate(timeShiftDate));
+					tsExecData.addExectuionDetail(setValidityEndDate(oldEle, pElement.getTimeShiftTemplate().isContinousShiftLogic() ? timeShiftDate : getPerviousCalendarDate(timeShiftDate)));
 					
 					//set timeshift status = shifted.
 					setTimeShiftStatus(e, SHIFTED);
@@ -228,7 +217,7 @@ public class TimeShiftParser extends DomParser{
 			} 
 	}// end of method
 	
-	private Element timeShiftUsingDuplication(HashMap<String, Element> map, Element parent, ArrayList<Element> elementTimeShiftList)
+	private Element timeShiftUsingDuplication(HashMap<String, Element> map, Element parent, ArrayList<Element> elementTimeShiftList, TimeShiftExecutionData tsExecData)
 	{
 		//Create temp map
 		HashMap<String, Element> tsMap = new HashMap<String, Element>(elementTimeShiftList.size());
@@ -237,53 +226,57 @@ public class TimeShiftParser extends DomParser{
 		}
 		
 		for (Element e : elementTimeShiftList) {
-	
-			if (SHIFTED.equals(getElementAttributeByTag(e, TIMESHIFT_FIELDNAME)) && getValidityEndDate(e) == null) {	
-				//Get unique key using TACT test date.
-				String tsRecordString = getTimeShiftElementUniqueString(e, false);
-				Element oldEle = tsMap.get(tsRecordString);
-						
-				if (oldEle == null){
-					System.out.println("The relevant time shift record not found.");
-					continue;
+			
+			if (SHIFTED.equals(getElementAttributeByTag(e, TIMESHIFT_FIELDNAME))) {
+				if (getValidityEndDate(e) == null) {
+					//Get unique key using TACT test date.
+					String tsRecordString = getTimeShiftElementUniqueString(e, false);
+					Element oldEle = tsMap.get(tsRecordString);
+							
+					if (oldEle == null){
+						System.out.println("The relevant time shift record not found.");
+						continue;
+					}
+											
+					Element dupNewE = (Element) e.cloneNode(true);
+					//set startDate = timeshift time.
+					tsExecData.addExectuionDetail(setValidityStartDate(dupNewE, releaseDate));
+					setTimeShiftStatus(dupNewE, COMPLETED);
+					
+					
+					Element dupOldEle = (Element) oldEle.cloneNode(true);
+					tsExecData.addExectuionDetail(setValidityStartDate(dupOldEle, getValidityStartDate(e)));
+					//set end date on time shifted record, based on logic of continous end, start dates.
+					tsExecData.addExectuionDetail(setValidityEndDate(dupOldEle, pElement.getTimeShiftTemplate().isContinousShiftLogic() ? releaseDate : getPerviousCalendarDate(releaseDate)));
+					setTimeShiftStatus(dupOldEle, COMPLETED);
+					
+					//update timeshift status in oldEle
+					setTimeShiftStatus(oldEle, COMPLETED);
+					
+					parent.replaceChild(dupOldEle, e);
+					parent.appendChild(dupNewE);
 				}
-										
-				Element dupNewE = (Element) e.cloneNode(true);
-				//set startDate = timeshift time.
-				setValidityStartDate(dupNewE, releaseDate);
-				setTimeShiftStatus(dupNewE, COMPLETED);
-				
-				
-				Element dupOldEle = (Element) oldEle.cloneNode(true);
-				setValidityStartDate(dupOldEle, getValidityStartDate(e));
-				//set end date on time shifted record, based on logic of continous end, start dates.
-				setValidityEndDate(dupOldEle, pElement.getTimeShiftTemplate().isContinousShiftLogic() ? releaseDate : getPerviousCalendarDate(releaseDate));
-				setTimeShiftStatus(dupOldEle, COMPLETED);
-				
-				//update timeshift status in oldEle
-				setTimeShiftStatus(oldEle, COMPLETED);
-				
-				parent.replaceChild(dupOldEle, e);
-				parent.appendChild(dupNewE);
+			}
+			else{
+				System.out.println("Method timeShiftUsingDuplication called for " + getTimeShiftElementUniqueString(e, true) + " where TimeShiftStatus = " + getElementAttributeByTag(e, TIMESHIFT_FIELDNAME));
+				isSuccessfullyProcess = false;
 			}
 		}
 		
 		return parent;
 	}
 	
-	private void setValidityStartDate(Element e, Calendar date)
-	{
-		setValidityDate(e, date, "StartDate");
+	private ExecutionDetails setValidityStartDate(Element e, Calendar date){		
+		return setValidityDate(e, date, "StartDate");
 	}
 	
-	private void setValidityEndDate(Element e, Calendar date)
-	{
-		setValidityDate(e, date, "EndDate");
+	private ExecutionDetails setValidityEndDate(Element e, Calendar date){
+		return setValidityDate(e, date, "EndDate");
 	}
 	
-	private void setValidityDate (Element e, Calendar date, String xmlTagName)
-	{
+	private ExecutionDetails setValidityDate (Element e, Calendar date, String xmlTagName){
 		NodeList validityPeriodList = (NodeList) e.getElementsByTagName("ValidityPeriod");
+		Calendar previousDate = null;
 		for(int i=0; i<validityPeriodList.getLength(); i++)
 		{
 			Element validityPeriod = (Element) validityPeriodList.item(i);
@@ -297,6 +290,7 @@ public class TimeShiftParser extends DomParser{
 					if (edate != null) {
 						System.out.println("Updated the Validity." + xmlTagName + " from: " + getElementAttribute(edate, "value")
 								+ "\tto: " + EPCDate.getCalendarAsEPCDateStr(date));
+						previousDate = EPCDate.getEPCDateAsCalendar(getElementAttribute(edate, "value"));
 						edate.setAttribute("value", EPCDate.getCalendarAsEPCDateStr(date));
 					}
 					else {
@@ -305,6 +299,17 @@ public class TimeShiftParser extends DomParser{
 		        }
 			}
 		}
+		
+		//Prepare display element details.
+		String uniqueFieldId = null;
+		NodeList displayElementNL = e.getElementsByTagName(pElement.getTimeShiftTemplate().getDisplayField());
+		if (displayElementNL != null && displayElementNL.getLength() == 1) {
+			Element displayElement = (Element) displayElementNL.item(0);
+			uniqueFieldId = displayElement.getAttribute("value");
+		}
+		
+		ExecutionDetails ed = new ExecutionDetails(uniqueFieldId, previousDate, date, xmlTagName);
+		return ed;
 	}
 	
 	private Calendar getValidityStartDate(Element e)
