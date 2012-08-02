@@ -34,6 +34,7 @@ public class ElementConfigReader {
 				}
 				
 				String epcQueryName = template.getAttribute("epcqueryname");
+				String displayHeader = template.getAttribute("displayheader");
 				
 				//getIdField
 				Field fieldId = new Field(dom.getElementAttributeByTag(template, "IdField", "name"));
@@ -42,6 +43,7 @@ public class ElementConfigReader {
 				Element timeShift = (Element) template.getElementsByTagName("TimeShiftTemplate").item(0);
 				String tsName = timeShift.getAttribute("name");
 				String tsXPath = timeShift.getAttribute("xpath");
+				String tsDisplayField = timeShift.getAttribute("displayfield");
 				boolean isContinous = timeShift.getAttribute("continousLogic").equals("true") ? true : false;
 				Field tsField = new Field(tsName, tsXPath, null);
 				
@@ -52,8 +54,8 @@ public class ElementConfigReader {
 					fl.add(field.getAttribute("name"), null);
 				}
 				
-				ProcessElement pe = new ProcessElement(templateName, fieldId, templateActive, 
-						new TimeShiftTemplate(tsField, fl, isContinous));
+				ProcessElement pe = new ProcessElement(templateName, fieldId, templateActive, displayHeader,
+						new TimeShiftTemplate(tsField, fl, isContinous, tsDisplayField));
 				pe.setEPCQueryName(epcQueryName);
 				listProcessElements.add(pe);
 			}// end of TemplateList for loop

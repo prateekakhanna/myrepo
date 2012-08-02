@@ -8,15 +8,17 @@ public class TimeShiftTemplate
 	private Field targetField;
 	private FieldList uniqueFields;
 	private boolean continousShiftLogic;
+	private String displayField;
 	
-	public TimeShiftTemplate(Field field, FieldList uniqueFields, boolean continousShiftLogic) {
+	public TimeShiftTemplate(Field field, FieldList uniqueFields, boolean continousShiftLogic, String displayField) {
 		this.targetField = field;
 		this.uniqueFields = uniqueFields;
 		this.continousShiftLogic=continousShiftLogic;
+		this.displayField = displayField;
 	}
 	
-	public TimeShiftTemplate(String name, FieldList uniqueFields, boolean continousShiftLogic) {
-		this(new Field(name), uniqueFields, continousShiftLogic);
+	public TimeShiftTemplate(String name, FieldList uniqueFields, boolean continousShiftLogic, String displayField) {
+		this(new Field(name), uniqueFields, continousShiftLogic, displayField);
 	}
 	/*
 	public TimeShiftTemplate(String name) {
@@ -44,5 +46,8 @@ public class TimeShiftTemplate
 	}
 	public boolean isContinousShiftLogic(){
 		return continousShiftLogic;
+	}
+	public String getDisplayField() {
+		return this.displayField;
 	}
 }

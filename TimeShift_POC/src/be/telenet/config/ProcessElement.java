@@ -13,7 +13,14 @@ public class ProcessElement
 	private Field idField;
 	private boolean isActive;
 	private TimeShiftTemplate timeShiftTemplate;
+	private String displayHeader;
 	
+	public String getDisplayHeader() {
+		return displayHeader;
+	}
+	public void setDisplayHeader(String displayHeader) {
+		this.displayHeader = displayHeader;
+	}
 	public String getEpcTemplateName() {
 		return epcTemplateName;
 	}
@@ -57,11 +64,12 @@ public class ProcessElement
 	}
 	
 	public ProcessElement(String epcTemplateName, Field idField,
-			boolean isActive, TimeShiftTemplate timeShiftTemplate) {
+			boolean isActive, String displayHeader, TimeShiftTemplate timeShiftTemplate) {
 		this.epcTemplateName = epcTemplateName;
 		this.idField = idField;
 		this.isActive = isActive;
 		this.timeShiftTemplate = timeShiftTemplate;
+		this.displayHeader = displayHeader;
 	}
 	
 	public ProcessElement()	{		
@@ -71,24 +79,4 @@ public class ProcessElement
 		//this.idField.add("570");
 		//this.timeShiftTemplate = createTimeShiftElement2(); 
 	}
-	/*
-	private TimeShiftTemplate createTimeShiftElement2()
-	{
-		FieldList fl = new FieldList();
-		fl.add("ConditionId", "6", true);
-		
-		TimeShiftTemplate tst = new TimeShiftTemplate("PromotionEligibilityRule", false, fl, 1);
-		
-		return tst;
-	}
-	
-	private TimeShiftTemplate createTimeShiftElement()
-	{		
-		FieldList fl = new FieldList();
-		fl.add("ApplicableForRatePlan", new ArrayList<Field>());
-				
-		TimeShiftTemplate tst = new TimeShiftTemplate("BillingRate", true, fl, 1);
-		
-		return tst;
-	}*/
 }
