@@ -29,8 +29,7 @@
 			</xs:sequence>
 			<xs:attribute name="name" use="required">
 				<xs:simpleType>
-					<xs:restriction base="xs:string">
-					</xs:restriction>
+					<xs:restriction base="xs:string"></xs:restriction>
 				</xs:simpleType>
 			</xs:attribute>
 			<xs:attribute name="active" use="required">
@@ -43,10 +42,10 @@
 			</xs:attribute>
 			<xs:attribute name="epcqueryname" use="required">
 				<xs:simpleType>
-					<xs:restriction base="xs:string">
-					</xs:restriction>
+					<xs:restriction base="xs:string"></xs:restriction>
 				</xs:simpleType>
 			</xs:attribute>
+			<xs:attribute name="displayheader" type="xs:string" use="required"></xs:attribute>
 		</xs:complexType>
 	</xs:element>
 	<xs:element name="TemplateList">
@@ -59,18 +58,16 @@
 	<xs:element name="TimeShiftTemplate">
 		<xs:complexType>
 			<xs:sequence>
-				<xs:element ref="UniqueFieldList"/>
+				<xs:element ref="UniqueFieldList" />
 			</xs:sequence>
 			<xs:attribute name="name" use="required">
 				<xs:simpleType>
-					<xs:restriction base="xs:string">						
-					</xs:restriction>
+					<xs:restriction base="xs:string"></xs:restriction>
 				</xs:simpleType>
 			</xs:attribute>
 			<xs:attribute name="xpath" use="required">
 				<xs:simpleType>
-					<xs:restriction base="xs:string">
-					</xs:restriction>
+					<xs:restriction base="xs:string"></xs:restriction>
 				</xs:simpleType>
 			</xs:attribute>
 			<xs:attribute name="continousLogic" use="required">
@@ -81,6 +78,7 @@
 					</xs:restriction>
 				</xs:simpleType>
 			</xs:attribute>
+			<xs:attribute name="displayfield" type="xs:string" use="required"></xs:attribute>
 		</xs:complexType>
 	</xs:element>
 	<xs:element name="UniqueFieldList">

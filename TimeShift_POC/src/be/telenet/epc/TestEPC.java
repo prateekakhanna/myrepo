@@ -6,10 +6,7 @@ import java.util.Calendar;
 
 import be.telenet.config.ElementConfigReader;
 import be.telenet.config.ProcessElement;
-import be.telenet.config.TimeShiftTemplate;
-import be.telenet.config.core.Field;
-import be.telenet.config.core.FieldList;
-import be.telenet.parse.BillingDiscountParser;
+import be.telenet.display.TimeShiftExecutionDetailsWriter;
 import be.telenet.parse.TimeShiftParser;
 import be.telenet.parse.TimeShiftParser.ApplicationFlowEnum;
 import be.telenet.utils.EPCDate;
@@ -32,7 +29,7 @@ public class TestEPC {
 		// telenet env1		
 		SERVER_NAME = "wlsepcmngdcluster.edp.corp.telenet.be";
 		SERVER_PORT = "9450";
-		EPC_PROJECT_NAME = "TimeShift_Prepartion2";
+		EPC_PROJECT_NAME = "R13_1_VOO_Preparation";
 		EPC_USERNAME = "epcoperator";	
 		EPC_PASSWORD = "epc+oper";
     }
@@ -68,8 +65,9 @@ public class TestEPC {
 						if (tsp.process()) {
 							elementString = tsp.getStringFromDocument();
 							//System.out.println(elementString);
-							
 							EPCElements.updateElement(elementString, client, pe.getEpcTemplateName());
+							
+							TimeShiftExecutionDetailsWriter.writeToTextFile(tsp.getListExecutionData());
 						}
 						else {System.out.println("XML process failed");}
 					}

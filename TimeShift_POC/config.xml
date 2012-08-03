@@ -1,28 +1,44 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <TemplateList xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="config.xsd">
-	<Template name="BillingDiscount" active="false" epcqueryname="getBillingDiscountWithTimeShiftStatusReady">
+	<Template name="BillingDiscount" active="false" epcqueryname="getBillingDiscountWithTimeShiftStatusReady"
+	displayheader="Template Name,ID,TimeShift Template Xpath,Flow,Execution Date,BillingRateGUId,Field Name,Date,TimeShift Date">
 		<IdField name="DiscountId">
 			<Values>
 				<Value/>
 			</Values>
 		</IdField>
-		<TimeShiftTemplate name="BillingRate" xpath="BillingDiscountRateList.BillingRate" continousLogic="true">
+		<TimeShiftTemplate name="BillingRate" xpath="BillingDiscountRateList.BillingRate" continousLogic="true" displayfield="BillingRateGUId">
 			<UniqueFieldList>
 				<Field name="ApplicableForRatePlan"/>
 				<Field name="BillingFrequency"/>
 			</UniqueFieldList>
 		</TimeShiftTemplate>
 	</Template>
-	<Template name="BillingElement" active="true" epcqueryname="getBillingElementWithTimeShiftStatus">
+	<Template name="BillingElement" active="false" epcqueryname="getBillingElementWithTimeShiftStatus"
+		displayheader="Template Name,ID,TimeShift Template Xpath,Flow,Execution Date,BillingRecurringChargeGUId,Field Name,Date,TimeShift Date">
 		<IdField name="ElementId">
 			<Values>
 				<Value/>
 			</Values>
 		</IdField>
-		<TimeShiftTemplate name="BillingRecurringCharge" xpath="BillingRecurringCharge" continousLogic="true">
+		<TimeShiftTemplate name="BillingRecurringCharge" xpath="BillingRecurringCharge" continousLogic="true" displayfield="BillingRecurringChargeGUId">
 			<UniqueFieldList>
 				<Field name="ApplicableRateClassRef"/>
 				<Field name="BillingFrequency"/>
+			</UniqueFieldList>
+		</TimeShiftTemplate>
+	</Template>
+	<Template name="ProductOffering" active="true" epcqueryname="getProductOfferingByTimeShiftStatus"
+		displayheader="Template Name,ID,TimeShift Template Xpath,Flow,Execution Date,PriceSettingId,Field Name,Date,TimeShift Date">
+		<IdField name="ProductOfferingId">
+			<Values>
+				<Value/>
+			</Values>
+		</IdField>
+		<TimeShiftTemplate name="ProductOfferingPriceSetting" xpath="CompositeProductChoiceList.CompositeProductOfferingChoice.CompositeProductOffering.ProductOfferingPriceSetting" 
+			continousLogic="true" displayfield="PriceSettingId">
+			<UniqueFieldList>
+				<Field name="VATDefinitionRef"/>
 			</UniqueFieldList>
 		</TimeShiftTemplate>
 	</Template>
